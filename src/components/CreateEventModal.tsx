@@ -1,28 +1,45 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card"
 import { X, Calendar } from "lucide-react"
-import { createEvent } from "@/app/actions/events"
+import { createEvent, updateEvent } from "@/app/actions/events"
+import { format, parseISO } from "date-fns"
 
 export function CreateEventModal({ 
   isOpen, 
   onClose, 
   onSave,
-  selectedDate
+  selectedDate,
+  initialData
 }: { 
   isOpen: boolean, 
   onClose: () => void, 
   onSave: () => void,
-  selectedDate: Date
+  selectedDate: Date,
+  initialData?: { id: string, title: string, start_time: string, end_time: string, category: string }
 }) {
   const [title, setTitle] = useState("")
   const [startTime, setStartTime] = useState("09:00")
   const [endTime, setEndTime] = useState("10:00")
   const [category, setCategory] = useState<'trabalho' | 'estudo' | 'pessoal'>('trabalho')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title)
+      setStartTime(format(parseISO(initialData.start_time), "HH:mm"))
+      setEndTime(format(parseISO(initialData.end_time), "HH:mm"))
+      setCategory(initialData.category as any)
+    } else {
+      setTitle("")
+      setStartTime("09:00")
+      setEndTime("10:00")
+      setCategory("trabalho")
+    }
+  }, [initialData, isOpen])
 
   if (!isOpen) return null
 
@@ -38,7 +55,17 @@ export function CreateEventModal({
     const [endH, endM] = endTime.split(':')
     end.setHours(parseInt(endH), parseInt(endM))
 
-    const result = await createEvent(title, start.toISOString(), end.toISOString(), category)
+    let result
+    if (initialData) {
+      result = await updateEvent(initialData.id, {
+        title,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        category
+      })
+    } else {
+      result = await createEvent(title, start.toISOString(), end.toISOString(), category)
+    }
     
     setLoading(false)
     if (result.success) {
@@ -54,7 +81,7 @@ export function CreateEventModal({
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-indigo" />
-            Novo Compromisso
+            {initialData ? "Editar Compromisso" : "Novo Compromisso"}
           </CardTitle>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
@@ -97,7 +124,7 @@ export function CreateEventModal({
           <CardFooter className="flex justify-end gap-2">
             <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Agendando..." : "Agendar Evento"}
+              {loading ? "Salvando..." : (initialData ? "Salvar Alterações" : "Agendar Evento")}
             </Button>
           </CardFooter>
         </form>

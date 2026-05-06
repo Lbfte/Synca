@@ -5,15 +5,15 @@ import { createClient } from "@/utils/supabase/client"
 import { Habit } from "@/types/database"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { Plus, Flame, Loader2, MoreVertical, Trash2 } from "lucide-react"
+import { Plus, Flame, Loader2, Trash2, Edit2 } from "lucide-react"
 import { CreateHabitModal } from "@/components/CreateHabitModal"
-import { createHabit } from "@/app/actions/habits"
-import { cn } from "@/lib/utils"
+import { createHabit, updateHabit } from "@/app/actions/habits"
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -31,11 +31,23 @@ export default function HabitsPage() {
     setLoading(false)
   }
 
-  const handleCreateHabit = async (name: string, goal: string, interval: number) => {
-    const result = await createHabit(name, goal, interval)
-    if (result.success && result.habit) {
-      setHabits([result.habit as Habit, ...habits])
+  const handleSaveHabit = async (name: string, goal: string, interval: number) => {
+    if (editingHabit) {
+      const result = await updateHabit(editingHabit.id, {
+        name,
+        goal_description: goal,
+        frequency_interval: interval
+      })
+      if (result.success) {
+        setHabits(habits.map(h => h.id === editingHabit.id ? { ...h, name, goal_description: goal, frequency_interval: interval } : h))
+      }
+    } else {
+      const result = await createHabit(name, goal, interval)
+      if (result.success && result.habit) {
+        setHabits([result.habit as Habit, ...habits])
+      }
     }
+    setEditingHabit(null)
   }
 
   const handleDeleteHabit = async (id: string) => {
@@ -44,6 +56,12 @@ export default function HabitsPage() {
     if (!error) {
       setHabits(habits.filter(h => h.id !== id))
     }
+  }
+
+  const getFrequencyLabel = (interval: number) => {
+    if (interval === 1) return "Diária"
+    if (interval === 7) return "Semanal"
+    return `A cada ${interval} dias`
   }
 
   if (loading) return (
@@ -60,7 +78,7 @@ export default function HabitsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Micro-Hábitos</h1>
           <p className="text-gray-500">Mantenha a constância com metas ridiculamente pequenas.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Novo Hábito
         </Button>
@@ -78,12 +96,20 @@ export default function HabitsPage() {
                   <Flame className="w-3 h-3 fill-current" />
                   {habit.streak_count} dias
                 </div>
-                <button 
-                  onClick={() => handleDeleteHabit(habit.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => { setEditingHabit(habit); setIsModalOpen(true); }}
+                    className="p-1.5 text-gray-400 hover:text-indigo hover:bg-indigo/5 rounded-md transition-all"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteHabit(habit.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -92,7 +118,7 @@ export default function HabitsPage() {
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Frequência: {habit.frequency_type === 'daily' ? 'Diária' : 'Semanal'}
+                  Frequência: {getFrequencyLabel(habit.frequency_interval || 1)}
                 </span>
                 <span className="text-[10px] font-bold text-indigo uppercase tracking-widest bg-indigo/5 px-2 py-0.5 rounded-full">
                   Ativo
@@ -111,7 +137,7 @@ export default function HabitsPage() {
             <p className="text-gray-500 mt-2 max-w-sm mx-auto">
               Crie seu primeiro micro-hábito. Lembre-se: o objetivo deve ser tão pequeno que seja impossível não fazer.
             </p>
-            <Button className="mt-8" onClick={() => setIsModalOpen(true)}>
+            <Button className="mt-8" onClick={() => { setEditingHabit(null); setIsModalOpen(true); }}>
               Começar Agora
             </Button>
           </div>
@@ -120,10 +146,14 @@ export default function HabitsPage() {
 
       <CreateHabitModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleCreateHabit}
+        onClose={() => { setIsModalOpen(false); setEditingHabit(null); }} 
+        onSave={handleSaveHabit}
+        initialData={editingHabit ? {
+          name: editingHabit.name,
+          goal_description: editingHabit.goal_description,
+          frequency_interval: editingHabit.frequency_interval || 1
+        } : undefined}
       />
     </div>
   )
 }
-

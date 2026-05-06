@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card"
@@ -9,16 +9,30 @@ import { X, Flame } from "lucide-react"
 export function CreateHabitModal({ 
   isOpen, 
   onClose, 
-  onSave 
+  onSave,
+  initialData
 }: { 
   isOpen: boolean, 
   onClose: () => void, 
-  onSave: (name: string, goal: string, interval: number) => void 
+  onSave: (name: string, goal: string, interval: number) => void,
+  initialData?: { name: string, goal_description: string, frequency_interval: number }
 }) {
   const [name, setName] = useState("")
   const [goal, setGoal] = useState("")
   const [interval, setIntervalValue] = useState(1)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || "")
+      setGoal(initialData.goal_description || "")
+      setIntervalValue(initialData.frequency_interval || 1)
+    } else {
+      setName("")
+      setGoal("")
+      setIntervalValue(1)
+    }
+  }, [initialData, isOpen])
 
   if (!isOpen) return null
 
@@ -27,9 +41,6 @@ export function CreateHabitModal({
     setLoading(true)
     await onSave(name, goal, interval)
     setLoading(false)
-    setName("")
-    setGoal("")
-    setIntervalValue(1)
     onClose()
   }
 
@@ -39,7 +50,7 @@ export function CreateHabitModal({
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Flame className="w-5 h-5 text-indigo" />
-            Novo Micro-Hábito
+            {initialData ? "Editar Micro-Hábito" : "Novo Micro-Hábito"}
           </CardTitle>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
@@ -85,7 +96,7 @@ export function CreateHabitModal({
           <CardFooter className="flex justify-end gap-2">
             <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Criar Hábito"}
+              {loading ? "Salvando..." : (initialData ? "Salvar Alterações" : "Criar Hábito")}
             </Button>
           </CardFooter>
         </form>

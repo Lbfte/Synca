@@ -70,3 +70,15 @@ export async function createHabit(name: string, goalDescription: string, frequen
   if (error) return { error: error.message }
   return { success: true, habit: data }
 }
+
+export async function updateHabit(id: string, updates: { name?: string, goal_description?: string, frequency_interval?: number }) {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('habits')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}

@@ -6,7 +6,7 @@ import { DailyTask } from "@/types/database"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { CheckCircle2, Circle, Plus, Trash2, Loader2, Calendar } from "lucide-react"
+import { CheckCircle2, Circle, Plus, Trash2, Loader2, Calendar, Edit2, Save, X } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,8 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [adding, setAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
   const supabase = createClient()
 
   useEffect(() => {
@@ -85,6 +87,24 @@ export default function TasksPage() {
     }
   }
 
+  const startEditing = (task: DailyTask) => {
+    setEditingId(task.id)
+    setEditingTitle(task.title)
+  }
+
+  const saveEdit = async (id: string) => {
+    if (!editingTitle.trim()) return
+    const { error } = await supabase
+      .from('daily_tasks')
+      .update({ title: editingTitle })
+      .eq('id', id)
+
+    if (!error) {
+      setTasks(tasks.map(t => t.id === id ? { ...t, title: editingTitle } : t))
+      setEditingId(null)
+    }
+  }
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-64 gap-4">
       <Loader2 className="w-8 h-8 text-indigo animate-spin" />
@@ -132,6 +152,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => toggleTask(task)}
                     className="transition-transform active:scale-90"
+                    disabled={editingId === task.id}
                   >
                     {task.is_completed ? (
                       <CheckCircle2 className="w-6 h-6 text-green" />
@@ -139,19 +160,52 @@ export default function TasksPage() {
                       <Circle className="w-6 h-6 text-gray-200 group-hover:text-indigo/40" />
                     )}
                   </button>
-                  <span className={cn(
-                    "text-lg font-medium transition-all",
-                    task.is_completed ? "text-gray-400 line-through" : "text-gray-700"
-                  )}>
-                    {task.title}
-                  </span>
+                  
+                  {editingId === task.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input 
+                        value={editingTitle}
+                        onChange={e => setEditingTitle(e.target.value)}
+                        autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && saveEdit(task.id)}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={() => saveEdit(task.id)} className="h-9 w-9 p-0">
+                        <Save className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-9 w-9 p-0">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span 
+                      onClick={() => !task.is_completed && startEditing(task)}
+                      className={cn(
+                        "text-lg font-medium transition-all flex-1 cursor-text",
+                        task.is_completed ? "text-gray-400 line-through" : "text-gray-700 hover:text-indigo"
+                      )}
+                    >
+                      {task.title}
+                    </span>
+                  )}
                 </div>
-                <button 
-                  onClick={() => handleDeleteTask(task.id)}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                
+                {editingId !== task.id && (
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => startEditing(task)}
+                      className="p-2 text-gray-400 hover:text-indigo hover:bg-indigo/5 rounded-lg transition-all"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
 

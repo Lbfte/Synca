@@ -11,14 +11,12 @@ import {
   endOfWeek, 
   isSameMonth, 
   isSameDay, 
-  addDays, 
   eachDayOfInterval,
-  startOfDay,
   isToday,
   parseISO
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Plus, Clock, Tag, Loader2, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Clock, Loader2, Trash2, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent } from "@/components/ui/Card"
 import { cn } from "@/lib/utils"
@@ -34,6 +32,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'month' | 'day'>('month')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -117,7 +116,7 @@ export default function CalendarPage() {
             <Button variant="secondary" size="sm" onClick={() => setCurrentDate(new Date())}>Hoje</Button>
             <Button variant="secondary" size="sm" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
           </div>
-          <Button size="sm" className="ml-2" onClick={() => setIsModalOpen(true)}>
+          <Button size="sm" className="ml-2" onClick={() => { setEditingEvent(null); setIsModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Novo Evento
           </Button>
         </div>
@@ -145,7 +144,7 @@ export default function CalendarPage() {
                   key={idx} 
                   onClick={() => {
                     setSelectedDate(day)
-                    setView('day') // Added to show details of the day
+                    setView('day')
                   }}
                   className={cn(
                     "min-h-[120px] p-2 border-r border-b border-gray-50 transition-all cursor-pointer hover:bg-gray-50/50",
@@ -165,8 +164,13 @@ export default function CalendarPage() {
                     {dayEvs.slice(0, 3).map(event => (
                       <div 
                         key={event.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingEvent(event);
+                          setIsModalOpen(true);
+                        }}
                         className={cn(
-                          "text-[10px] px-1.5 py-0.5 rounded border font-bold truncate",
+                          "text-[10px] px-1.5 py-0.5 rounded border font-bold truncate hover:opacity-80 transition-opacity",
                           categories[event.category as keyof typeof categories] || categories.pessoal
                         )}
                       >
@@ -188,7 +192,6 @@ export default function CalendarPage() {
     </Card>
   ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Day Timeline */}
           <Card className="lg:col-span-2 border-none shadow-xl shadow-indigo/5 ring-1 ring-gray-100 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-lg flex items-center gap-2">
@@ -203,7 +206,6 @@ export default function CalendarPage() {
                     {format(new Date().setHours(hour, 0), 'HH:mm')}
                   </div>
                   <div className="flex-1 relative">
-                    {/* Events for this hour */}
                     {dayEvents(selectedDate).filter(e => {
                       const start = parseISO(e.start_time).getHours()
                       return start === hour
@@ -216,15 +218,20 @@ export default function CalendarPage() {
                         )}
                       >
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="cursor-pointer flex-1" onClick={() => { setEditingEvent(event); setIsModalOpen(true); }}>
                             <p className="font-bold text-sm">{event.title}</p>
                             <p className="text-[10px] opacity-70">
                               {format(parseISO(event.start_time), 'HH:mm')} - {format(parseISO(event.end_time), 'HH:mm')}
                             </p>
                           </div>
-                          <button onClick={() => handleDeleteEvent(event.id)} className="hover:text-red-500 transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingEvent(event); setIsModalOpen(true); }} className="p-1 hover:text-indigo transition-colors">
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDeleteEvent(event.id)} className="p-1 hover:text-red-500 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -234,7 +241,6 @@ export default function CalendarPage() {
             </div>
           </Card>
 
-          {/* Mini Calendar & Filters */}
           <div className="space-y-6">
              <Card className="border-none shadow-xl shadow-indigo/5 ring-1 ring-gray-100 p-6">
                <h3 className="font-bold text-sm uppercase tracking-widest text-gray-400 mb-4">Legenda</h3>
@@ -247,29 +253,23 @@ export default function CalendarPage() {
                  ))}
                </div>
              </Card>
-
-             <section className="bg-indigo text-white rounded-3xl p-8 relative overflow-hidden shadow-xl shadow-indigo/20">
-               <div className="relative z-10">
-                 <h3 className="font-bold text-lg mb-2">Dica de Gestão</h3>
-                 <p className="text-indigo-100 text-sm leading-relaxed italic">
-                   "Use blocos de tempo (Time Blocking) para focar em uma única categoria por vez."
-                 </p>
-               </div>
-               <div className="absolute -right-4 -bottom-4 opacity-10">
-                 <Clock className="w-32 h-32" />
-               </div>
-             </section>
           </div>
         </div>
       )}
 
       <CreateEventModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => { setIsModalOpen(false); setEditingEvent(null); }} 
         onSave={fetchEvents}
         selectedDate={selectedDate}
+        initialData={editingEvent ? {
+          id: editingEvent.id,
+          title: editingEvent.title,
+          start_time: editingEvent.start_time,
+          end_time: editingEvent.end_time,
+          category: editingEvent.category
+        } : undefined}
       />
     </div>
   )
 }
-

@@ -48,3 +48,15 @@ export async function getEvents(start: string, end: string) {
   if (error) return []
   return data
 }
+
+export async function updateEvent(id: string, updates: { title?: string, start_time?: string, end_time?: string, category?: string }) {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('events')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
