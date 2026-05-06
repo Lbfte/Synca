@@ -6,6 +6,7 @@ export type Habit = {
   frequency_type: 'daily' | 'weekly'
   streak_count: number
   last_completed_at: string | null
+  frequency_interval: number | null
   created_at: string
 }
 
