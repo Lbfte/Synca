@@ -26,6 +26,7 @@ export type Report = {
   title: string | null
   content: string | null
   is_public: boolean
+  access_code: string | null
   created_at: string
 }
 
