@@ -15,7 +15,7 @@ export function CreateHabitModal({
   isOpen: boolean, 
   onClose: () => void, 
   onSave: (name: string, goal: string, interval: number) => void,
-  initialData?: { name: string, goal_description: string, frequency_interval: number }
+  initialData?: { name: string, goal_description: string | null, frequency_interval: number }
 }) {
   const [name, setName] = useState("")
   const [goal, setGoal] = useState("")
