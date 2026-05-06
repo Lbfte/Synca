@@ -5,6 +5,8 @@ import {
   format, 
   addMonths, 
   subMonths, 
+  addDays,
+  subDays,
   startOfMonth, 
   endOfMonth, 
   startOfWeek, 
@@ -54,8 +56,29 @@ export default function CalendarPage() {
     setLoading(false)
   }
 
-  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
-  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1))
+  const handleNext = () => {
+    if (view === 'day') {
+      const nextDay = addDays(selectedDate, 1)
+      setSelectedDate(nextDay)
+      if (!isSameMonth(nextDay, currentDate)) {
+        setCurrentDate(startOfMonth(nextDay))
+      }
+    } else {
+      setCurrentDate(addMonths(currentDate, 1))
+    }
+  }
+
+  const handlePrev = () => {
+    if (view === 'day') {
+      const prevDay = subDays(selectedDate, 1)
+      setSelectedDate(prevDay)
+      if (!isSameMonth(prevDay, currentDate)) {
+        setCurrentDate(startOfMonth(prevDay))
+      }
+    } else {
+      setCurrentDate(subMonths(currentDate, 1))
+    }
+  }
 
   const handleDeleteEvent = async (id: string) => {
     if (!confirm("Excluir este evento?")) return
@@ -85,7 +108,9 @@ export default function CalendarPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight capitalize">
-            {format(currentDate, "MMMM yyyy", { locale: ptBR })}
+            {view === 'day' 
+              ? format(selectedDate, "d 'de' MMMM yyyy", { locale: ptBR })
+              : format(currentDate, "MMMM yyyy", { locale: ptBR })}
           </h1>
           <p className="text-gray-500">Gerencie seu cronograma e compromissos.</p>
         </div>
@@ -112,9 +137,13 @@ export default function CalendarPage() {
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="secondary" size="sm" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-            <Button variant="secondary" size="sm" onClick={() => setCurrentDate(new Date())}>Hoje</Button>
-            <Button variant="secondary" size="sm" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+            <Button variant="secondary" size="sm" onClick={handlePrev}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button variant="secondary" size="sm" onClick={() => {
+              const today = new Date()
+              setSelectedDate(today)
+              setCurrentDate(today)
+            }}>Hoje</Button>
+            <Button variant="secondary" size="sm" onClick={handleNext}><ChevronRight className="w-4 h-4" /></Button>
           </div>
           <Button size="sm" className="ml-2" onClick={() => { setEditingEvent(null); setIsModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Novo Evento
