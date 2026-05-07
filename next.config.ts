@@ -2,12 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
+  basePath: '/HabitFlow',
+  assetPrefix: '/HabitFlow',
   images: {
     unoptimized: true,
   },
-  // Se o seu repositório no GitHub se chamar "HabitFlow", descomente as linhas abaixo:
-  // basePath: '/HabitFlow',
-  // assetPrefix: '/HabitFlow',
+  // Garante que /share/view vire /share/view/index.html para o GitHub Pages entender
+  trailingSlash: true, 
 };
 
 export default nextConfig;

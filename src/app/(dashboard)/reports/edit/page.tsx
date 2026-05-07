@@ -132,7 +132,7 @@ function EditorContent() {
   }
 
   const copyShareLink = () => {
-    const url = `${window.location.origin}/share/view?id=${id}`
+    const url = `${window.location.origin}/HabitFlow/share/view/?id=${id}`
     navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
