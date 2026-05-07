@@ -127,7 +127,7 @@ export default function TasksPage() {
         </div>
       </header>
 
-      <Card className="border-none shadow-xl shadow-indigo/5 ring-1 ring-border bg-surface overflow-hidden">
+      <Card className="shadow-xl shadow-indigo/5 bg-surface overflow-hidden">
         <CardContent className="p-0">
           <form onSubmit={handleAddTask} className="p-6 border-b border-border flex gap-4 bg-muted/5">
             <Input

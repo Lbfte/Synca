@@ -151,7 +151,7 @@ export default function CalendarPage() {
       </header>
 
       {view === 'month' ? (
-        <Card className="border-none shadow-xl shadow-indigo/5 bg-surface ring-1 ring-border overflow-hidden">
+        <Card className="shadow-xl shadow-indigo/5 bg-surface overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[600px]">
               <div className="grid grid-cols-7 border-b border-border bg-muted/5">

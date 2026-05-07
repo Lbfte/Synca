@@ -87,7 +87,7 @@ export default function HabitsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {habits.map((habit) => (
-          <Card key={habit.id} className="border-none shadow-xl shadow-indigo/5 bg-surface ring-1 ring-border hover:ring-indigo/40 transition-all group overflow-hidden">
+          <Card key={habit.id} className="shadow-xl shadow-indigo/5 bg-surface hover:shadow-indigo/20 transition-all group overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div className="bg-indigo/5 p-2 rounded-lg text-indigo group-hover:bg-indigo group-hover:text-white transition-colors">
                 <Flame className="w-5 h-5" />

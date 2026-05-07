@@ -266,7 +266,7 @@ function EditorContent() {
 
       {showConnections && (
         <aside className="w-full lg:w-80 space-y-6 animate-in slide-in-from-right-4 duration-300">
-          <Card className="border-none shadow-2xl ring-1 ring-border p-6 bg-surface sticky top-24">
+          <Card className="shadow-2xl bg-surface sticky top-24">
             <div className="flex items-center justify-between mb-8">
               <h3 className="font-black text-[10px] uppercase tracking-widest text-foreground flex items-center gap-2">
                 <LinkIcon className="w-4 h-4 text-indigo" />
