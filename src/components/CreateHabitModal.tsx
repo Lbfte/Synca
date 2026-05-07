@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card"
 import { X, Flame } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function CreateHabitModal({ 
   isOpen, 
@@ -45,35 +46,35 @@ export function CreateHabitModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <Card className="w-full max-w-md shadow-2xl border-none">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <Card className="w-full max-w-md shadow-2xl border-none bg-surface">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
+          <CardTitle className="flex items-center gap-2 font-bold text-foreground">
             <Flame className="w-5 h-5 text-indigo" />
             {initialData ? "Editar Micro-Hábito" : "Novo Micro-Hábito"}
           </CardTitle>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">O que você vai fazer?</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted">O que você vai fazer?</label>
               <Input 
                 placeholder="Ex: Ler 1 página" 
                 value={name} 
                 onChange={e => setName(e.target.value)}
                 required
               />
-              <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Dica: Escolha algo ridiculamente fácil.</p>
+              <p className="text-[10px] text-muted uppercase font-bold tracking-wider italic">Dica: Escolha algo ridiculamente fácil.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Frequência</label>
+                <label className="text-xs font-black uppercase tracking-widest text-muted">Frequência</label>
                 <select 
-                  className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo/20"
+                  className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-indigo/20 transition-all cursor-pointer"
                   value={interval}
                   onChange={e => setIntervalValue(parseInt(e.target.value))}
                 >
@@ -84,7 +85,7 @@ export function CreateHabitModal({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Propósito</label>
+                <label className="text-xs font-black uppercase tracking-widest text-muted">Propósito</label>
                 <Input 
                   placeholder="Ex: Criar hábito" 
                   value={goal} 
@@ -93,7 +94,7 @@ export function CreateHabitModal({
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end gap-2">
+          <CardFooter className="flex justify-end gap-2 border-t border-border pt-6">
             <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
               {loading ? "Salvando..." : (initialData ? "Salvar Alterações" : "Criar Hábito")}

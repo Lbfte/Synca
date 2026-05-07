@@ -13,13 +13,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light")
 
   useEffect(() => {
+    // Tenta carregar o tema salvo pelo usuário
     const savedTheme = localStorage.getItem("theme") as Theme
+    
     if (savedTheme) {
       setTheme(savedTheme)
       document.documentElement.classList.toggle("dark", savedTheme === "dark")
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark")
-      document.documentElement.classList.add("dark")
+    } else {
+      // Se não houver tema salvo, garante que seja o Modo Claro (Light)
+      // Independentemente da preferência do sistema operacional
+      setTheme("light")
+      document.documentElement.classList.remove("dark")
+      localStorage.setItem("theme", "light")
     }
   }, [])
 

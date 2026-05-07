@@ -15,7 +15,7 @@
   --background: #FAFAFA;
   --foreground: #1A1A1B;
   --surface: #FFFFFF;
-  --border: #E5E7EB;
+  --border: #F1F5F9; /* Bordas muito suaves no modo claro */
   --muted: #64748B;
   --indigo: #4F46E5;
   --green: #10B981;
@@ -25,7 +25,7 @@
   --background: #121214;
   --foreground: #E9ECEF;
   --surface: #1A1B1E;
-  --border: rgba(123, 97, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.05); /* Bordas quase invisíveis no modo escuro */
   --muted: #ADB5BD;
   --indigo: #7B61FF;
   --green: #40C057;
@@ -44,16 +44,25 @@ body {
   * {
     border-color: var(--border);
   }
+  
+  /* Corrige o fundo de selects e inputs nativos no modo escuro */
+  select, input, textarea {
+    background-color: var(--surface);
+    color: var(--foreground);
+  }
+  
+  option {
+    background-color: var(--surface);
+    color: var(--foreground);
+  }
 }
 
-/* Utilitários de Opacidade para Concluídos */
 .completed-item {
   opacity: 0.4;
   filter: grayscale(0.5);
   transition: all 0.3s ease;
 }
 
-/* Gradiente Premium para o Accent */
 .accent-gradient {
   background: linear-gradient(135deg, #7B61FF 0%, #634ACC 100%);
 }

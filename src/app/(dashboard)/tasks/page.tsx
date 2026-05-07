@@ -34,7 +34,7 @@ export default function TasksPage() {
       .select('*')
       .order('is_completed', { ascending: true })
       .order('created_at', { ascending: false })
-    
+
     if (data) setTasks(data)
     setLoading(false)
   }
@@ -42,10 +42,10 @@ export default function TasksPage() {
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTaskTitle.trim()) return
-    
+
     setAdding(true)
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     const { data, error } = await supabase
       .from('daily_tasks')
       .insert({
@@ -130,8 +130,8 @@ export default function TasksPage() {
       <Card className="border-none shadow-xl shadow-indigo/5 ring-1 ring-border bg-surface overflow-hidden">
         <CardContent className="p-0">
           <form onSubmit={handleAddTask} className="p-6 border-b border-border flex gap-4 bg-muted/5">
-            <Input 
-              placeholder="Adicionar uma nova tarefa..." 
+            <Input
+              placeholder="Adicionar uma nova tarefa..."
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
               className="bg-surface border-border flex-1"
@@ -144,7 +144,7 @@ export default function TasksPage() {
 
           <div className="divide-y divide-border">
             {tasks.map((task) => (
-              <div 
+              <div
                 key={task.id}
                 className={cn(
                   "flex items-center justify-between p-6 hover:bg-indigo/[0.02] transition-colors group",
@@ -152,7 +152,7 @@ export default function TasksPage() {
                 )}
               >
                 <div className="flex items-center gap-4 flex-1">
-                  <button 
+                  <button
                     onClick={() => toggleTask(task)}
                     className="transition-transform active:scale-90"
                     disabled={editingId === task.id}
@@ -163,10 +163,10 @@ export default function TasksPage() {
                       <Circle className="w-6 h-6 text-border group-hover:text-indigo/40" />
                     )}
                   </button>
-                  
+
                   {editingId === task.id ? (
                     <div className="flex items-center gap-2 flex-1">
-                      <Input 
+                      <Input
                         value={editingTitle}
                         onChange={e => setEditingTitle(e.target.value)}
                         autoFocus
@@ -181,7 +181,7 @@ export default function TasksPage() {
                       </Button>
                     </div>
                   ) : (
-                    <span 
+                    <span
                       onClick={() => !task.is_completed && startEditing(task)}
                       className={cn(
                         "text-lg font-bold transition-all flex-1 cursor-text",
@@ -192,16 +192,16 @@ export default function TasksPage() {
                     </span>
                   )}
                 </div>
-                
+
                 {editingId !== task.id && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                    <button
                       onClick={() => startEditing(task)}
                       className="p-2 text-muted hover:text-indigo hover:bg-indigo/10 rounded-lg transition-all"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteTask(task.id)}
                       className="p-2 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                     >

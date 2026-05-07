@@ -76,21 +76,21 @@ export function CreateEventModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <Card className="w-full max-w-md shadow-2xl border-none">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <Card className="w-full max-w-md shadow-2xl border-none bg-surface">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
+          <CardTitle className="flex items-center gap-2 font-bold text-foreground">
             <Calendar className="w-5 h-5 text-indigo" />
             {initialData ? "Editar Compromisso" : "Novo Compromisso"}
           </CardTitle>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">Título</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted">Título</label>
               <Input 
                 placeholder="Ex: Reunião de Planejamento" 
                 value={title} 
@@ -98,20 +98,20 @@ export function CreateEventModal({
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Início</label>
+                <label className="text-xs font-black uppercase tracking-widest text-muted">Início</label>
                 <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Fim</label>
+                <label className="text-xs font-black uppercase tracking-widest text-muted">Fim</label>
                 <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">Categoria</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted">Categoria</label>
               <select 
-                className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo/20"
+                className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-indigo/20 transition-all cursor-pointer"
                 value={category}
                 onChange={e => setCategory(e.target.value as any)}
               >
@@ -121,7 +121,7 @@ export function CreateEventModal({
               </select>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end gap-2">
+          <CardFooter className="flex justify-end gap-2 border-t border-border pt-6">
             <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
               {loading ? "Salvando..." : (initialData ? "Salvar Alterações" : "Agendar Evento")}
