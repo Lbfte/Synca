@@ -76,7 +76,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {reports.map((report) => (
           <div key={report.id} className="h-full">
-            <Card className="hover:ring-2 hover:ring-indigo/40 transition-all group h-full flex flex-col bg-surface border-none ring-1 ring-border shadow-xl shadow-indigo/5">
+            <Card className="hover:ring-2 hover:ring-indigo/40 transition-all group h-full flex flex-col bg-surface border-none shadow-soft dark:shadow-xl dark:shadow-indigo/5">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="bg-indigo/10 p-2 rounded-lg group-hover:bg-indigo group-hover:text-white transition-colors">
@@ -93,7 +93,7 @@ export default function ReportsPage() {
                   )}
                 </div>
                 <div className="mt-4">
-                  <CardTitle className="group-hover:text-indigo transition-colors line-clamp-1 font-bold">
+                  <CardTitle className="group-hover:text-indigo transition-colors line-clamp-1 font-semibold dark:font-bold">
                     {report.title || "Sem título"}
                   </CardTitle>
                 </div>
@@ -107,11 +107,11 @@ export default function ReportsPage() {
                 </p>
                 <div className="mt-6 flex gap-2">
                   <Link href={`/reports/edit?id=${report.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">Editar</Button>
+                    <Button variant="ghost" size="sm" className="w-full bg-indigo/5 text-indigo hover:bg-indigo/10">Editar</Button>
                   </Link>
                   {report.is_public && (
                     <Link href={`/share/view/?id=${report.id}`} target="_blank">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="bg-muted/5 hover:bg-muted/10 text-muted">
                         <Globe className="w-4 h-4" />
                       </Button>
                     </Link>

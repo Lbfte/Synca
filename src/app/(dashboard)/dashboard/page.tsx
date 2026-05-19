@@ -13,6 +13,8 @@ import { completeHabit, createHabit } from "@/app/actions/habits"
 import { CreateHabitModal } from "@/components/CreateHabitModal"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/Input"
+import { StickyNotes } from "@/components/StickyNotes"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function DashboardPage() {
   const [habits, setHabits] = useState<Habit[]>([])
@@ -20,6 +22,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [completingId, setCompletingId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [hideHabits, setHideHabits] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -152,13 +155,20 @@ export default function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 border-none shadow-xl shadow-indigo/5 bg-surface overflow-hidden">
+        <Card className="lg:col-span-2 border-none shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
             <CardTitle className="text-xl font-bold flex items-center gap-2">
               <Flame className="w-5 h-5 text-indigo" />
               Micro-Hábitos
+              <button 
+                onClick={() => setHideHabits(!hideHabits)} 
+                className="ml-2 text-muted hover:text-foreground transition-colors"
+                title={hideHabits ? "Mostrar hábitos" : "Ocultar hábitos"}
+              >
+                {hideHabits ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </CardTitle>
-            <span className="text-[10px] font-black text-indigo bg-indigo/10 px-3 py-1 rounded-full uppercase tracking-widest">
+            <span className="text-[10px] font-black text-indigo bg-indigo/5 dark:bg-indigo/10 px-3 py-1 rounded-full uppercase tracking-widest ring-1 ring-indigo/10 dark:ring-0">
               {habits.filter(h => h.last_completed_at && isToday(parseISO(h.last_completed_at))).length}/{habits.length} Concluídos
             </span>
           </CardHeader>
@@ -197,22 +207,29 @@ export default function DashboardPage() {
                       </button>
                       <div>
                         <h3 className={cn(
-                          "font-bold text-lg transition-all", 
-                          completedToday ? "text-muted line-through" : "text-foreground"
+                          "font-semibold dark:font-bold text-lg transition-all", 
+                          completedToday ? "text-muted line-through" : "text-foreground",
+                          hideHabits && "filter blur-[4px] select-none"
                         )}>
-                          {habit.name}
+                          {hideHabits ? "Nome Oculto" : habit.name}
                         </h3>
-                        <p className="text-sm text-muted font-medium">{habit.goal_description}</p>
+                        <p className={cn(
+                          "text-sm text-muted font-medium",
+                          hideHabits && "filter blur-[3px] select-none"
+                        )}>
+                          {hideHabits ? "Descrição confidencial" : habit.goal_description}
+                        </p>
                       </div>
                     </div>
                     <div className={cn(
                       "flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-xl transition-all",
                       activeStreak > 0 
-                        ? "text-orange bg-orange/10 ring-1 ring-orange/20" 
-                        : "text-muted bg-muted/5"
+                        ? "text-orange bg-orange/5 dark:bg-orange/10 ring-1 ring-orange/10 dark:ring-orange/20" 
+                        : "text-muted bg-muted/5",
+                      hideHabits && "filter blur-[3px] select-none"
                     )}>
                       <Flame className={cn("w-4 h-4", activeStreak > 0 && "fill-current animate-pulse")} />
-                      {activeStreak}
+                      {hideHabits ? "••" : activeStreak}
                     </div>
                   </div>
                 )
@@ -222,7 +239,7 @@ export default function DashboardPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-none shadow-xl shadow-indigo/5 bg-surface">
+          <Card className="border-none shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface">
             <CardHeader className="pb-4">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-indigo" />
@@ -247,7 +264,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <span className={cn(
-                    "text-sm font-bold transition-all",
+                    "text-sm font-semibold dark:font-bold transition-all",
                     task.is_completed ? "text-muted line-through" : "text-foreground"
                   )}>
                     {task.title}
@@ -281,7 +298,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <section className="accent-gradient text-white rounded-3xl p-8 relative overflow-hidden shadow-xl shadow-indigo/20">
+          <section className="accent-gradient text-white rounded-3xl p-8 relative overflow-hidden shadow-soft dark:shadow-xl dark:shadow-indigo/20">
             <div className="relative z-10">
               <h3 className="font-black text-xl mb-2 tracking-tight">Dica de hoje</h3>
               <p className="text-white/80 text-sm leading-relaxed italic font-medium">
@@ -294,6 +311,8 @@ export default function DashboardPage() {
           </section>
         </div>
       </div>
+
+      <StickyNotes />
 
       <CreateHabitModal 
         isOpen={isModalOpen} 

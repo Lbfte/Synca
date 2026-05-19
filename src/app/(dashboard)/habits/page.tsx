@@ -9,11 +9,13 @@ import { Plus, Flame, Loader2, Trash2, Edit2 } from "lucide-react"
 import { CreateHabitModal } from "@/components/CreateHabitModal"
 import { createHabit, updateHabit } from "@/app/actions/habits"
 import { cn } from "@/lib/utils"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [hideHabits, setHideHabits] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const supabase = createClient()
 
@@ -76,7 +78,16 @@ export default function HabitsPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Micro-Hábitos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Micro-Hábitos</h1>
+            <button 
+              onClick={() => setHideHabits(!hideHabits)} 
+              className="mt-1 text-muted hover:text-foreground transition-colors"
+              title={hideHabits ? "Mostrar hábitos" : "Ocultar hábitos"}
+            >
+              {hideHabits ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
           <p className="text-muted">Mantenha a constância com metas ridiculamente pequenas.</p>
         </div>
         <Button onClick={() => { setEditingHabit(null); setIsModalOpen(true); }}>
@@ -87,13 +98,13 @@ export default function HabitsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {habits.map((habit) => (
-          <Card key={habit.id} className="shadow-xl shadow-indigo/5 bg-surface hover:shadow-indigo/20 transition-all group overflow-hidden">
+          <Card key={habit.id} className="shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface hover:shadow-lg dark:hover:shadow-indigo/20 transition-all group overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div className="bg-indigo/5 p-2 rounded-lg text-indigo group-hover:bg-indigo group-hover:text-white transition-colors">
                 <Flame className="w-5 h-5" />
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-orange bg-orange/10 px-2 py-1 rounded-lg text-xs font-bold ring-1 ring-orange/20">
+                <div className="flex items-center gap-1 text-orange bg-orange/5 dark:bg-orange/10 px-2 py-1 rounded-lg text-xs font-bold ring-1 ring-orange/10 dark:ring-orange/20">
                   <Flame className="w-3 h-3 fill-current" />
                   {habit.streak_count} dias
                 </div>
@@ -114,14 +125,18 @@ export default function HabitsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <h3 className="font-bold text-lg mb-1 group-hover:text-indigo transition-colors">{habit.name}</h3>
-              <p className="text-sm text-muted mb-4 line-clamp-2 min-h-[40px] font-medium">{habit.goal_description}</p>
+              <h3 className={cn("font-semibold dark:font-bold text-lg mb-1 group-hover:text-indigo transition-colors", hideHabits && "filter blur-[4px] select-none")}>
+                {hideHabits ? "Hábito Oculto" : habit.name}
+              </h3>
+              <p className={cn("text-sm text-muted mb-4 line-clamp-2 min-h-[40px] font-medium", hideHabits && "filter blur-[3px] select-none")}>
+                {hideHabits ? "Descrição do hábito confidencial." : habit.goal_description}
+              </p>
               
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted">
                   Frequência: {getFrequencyLabel(habit.frequency_interval || 1)}
                 </span>
-                <span className="text-[10px] font-black text-indigo uppercase tracking-widest bg-indigo/10 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-black text-indigo uppercase tracking-widest bg-indigo/5 dark:bg-indigo/10 px-2 py-0.5 rounded-full ring-1 ring-indigo/10 dark:ring-0">
                   Ativo
                 </span>
               </div>

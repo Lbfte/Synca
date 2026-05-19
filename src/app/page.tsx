@@ -5,7 +5,7 @@ import { Layout, Flame, CheckSquare, FileText, Calendar, ArrowRight } from "luci
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-xl text-indigo">
           <div className="bg-indigo p-1.5 rounded-lg">
             <Flame className="w-5 h-5 text-white" />
@@ -51,7 +51,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features Grid */}
-        <section className="bg-white py-24 border-y border-gray-50">
+        <section className="bg-surface py-24 border-y border-border">
           <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <FeatureCard 
               icon={Flame} 
@@ -77,7 +77,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="py-12 border-t border-gray-50 text-center text-gray-400 text-sm">
+      <footer className="py-12 border-t border-border text-center text-muted text-sm">
         <p>© 2026 HabitFlow. Feito para quem valoriza o progresso constante.</p>
       </footer>
     </div>
@@ -86,11 +86,11 @@ export default function LandingPage() {
 
 function FeatureCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
   return (
-    <div className="p-6 rounded-2xl border border-gray-100 hover:border-indigo/20 hover:shadow-xl hover:shadow-indigo/5 transition-all group">
+    <div className="p-6 rounded-2xl bg-surface border-none shadow-soft dark:shadow-sm hover:shadow-lg dark:hover:shadow-xl dark:hover:shadow-indigo/5 transition-all group">
       <div className="bg-indigo/5 w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo group-hover:text-white transition-colors">
         <Icon className="w-6 h-6 text-indigo group-hover:text-white" />
       </div>
-      <h3 className="font-bold text-lg mb-2">{title}</h3>
+      <h3 className="font-semibold dark:font-bold text-lg mb-2">{title}</h3>
       <p className="text-gray-500 text-sm leading-relaxed">{description}</p>
     </div>
   )

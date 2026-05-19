@@ -127,7 +127,7 @@ export default function TasksPage() {
         </div>
       </header>
 
-      <Card className="shadow-xl shadow-indigo/5 bg-surface overflow-hidden">
+      <Card className="shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface overflow-hidden">
         <CardContent className="p-0">
           <form onSubmit={handleAddTask} className="p-6 border-b border-border flex gap-4 bg-muted/5">
             <Input
@@ -184,7 +184,7 @@ export default function TasksPage() {
                     <span
                       onClick={() => !task.is_completed && startEditing(task)}
                       className={cn(
-                        "text-lg font-bold transition-all flex-1 cursor-text",
+                        "text-lg font-semibold dark:font-bold transition-all flex-1 cursor-text",
                         task.is_completed ? "text-muted line-through" : "text-foreground hover:text-indigo"
                       )}
                     >
@@ -215,7 +215,7 @@ export default function TasksPage() {
         </CardContent>
       </Card>
 
-      <section className="bg-surface rounded-3xl p-8 ring-1 ring-border shadow-sm relative overflow-hidden">
+      <section className="bg-surface rounded-3xl p-8 shadow-sm relative overflow-hidden">
         <div className="relative z-10">
           <h3 className="font-black text-xl mb-2 tracking-tight">Produtividade</h3>
           <div className="flex gap-8 mt-4">

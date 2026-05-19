@@ -115,7 +115,7 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex bg-surface p-1 rounded-lg mr-2 ring-1 ring-border shadow-sm">
+          <div className="flex bg-surface p-1 rounded-lg mr-2 shadow-sm">
             <button 
               onClick={() => setView('month')}
               className={cn(
@@ -151,7 +151,7 @@ export default function CalendarPage() {
       </header>
 
       {view === 'month' ? (
-        <Card className="shadow-xl shadow-indigo/5 bg-surface overflow-hidden">
+        <Card className="shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[600px]">
               <div className="grid grid-cols-7 border-b border-border bg-muted/5">
@@ -220,7 +220,7 @@ export default function CalendarPage() {
     </Card>
   ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 border-none shadow-xl shadow-indigo/5 bg-surface ring-1 ring-border p-6">
+          <Card className="lg:col-span-2 border-none shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <Clock className="w-5 h-5 text-indigo" />
@@ -270,7 +270,7 @@ export default function CalendarPage() {
           </Card>
 
           <div className="space-y-6">
-             <Card className="border-none shadow-xl shadow-indigo/5 bg-surface ring-1 ring-border p-6">
+             <Card className="border-none shadow-soft dark:shadow-xl dark:shadow-indigo/5 bg-surface p-6">
                <h3 className="font-black text-[10px] uppercase tracking-widest text-muted mb-4">Legenda</h3>
                <div className="space-y-3">
                  {Object.entries(categories).map(([cat, style]) => (

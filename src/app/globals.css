@@ -6,9 +6,9 @@
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-indigo: var(--indigo);
-  --color-green: var(--green);
   --color-orange: #FF922B;
   --font-sans: "Inter", "Geist", sans-serif;
+  --shadow-soft: 0px 8px 24px rgba(28, 22, 70, 0.04), 0px 2px 6px rgba(28, 22, 70, 0.02);
 }
 
 :root {
@@ -16,7 +16,7 @@
   --foreground: #1A1A1B;
   --surface: #FFFFFF;
   --border: #F1F5F9; /* Bordas muito suaves no modo claro */
-  --muted: #64748B;
+  --muted: #475569; /* Cinza mais nítido para textos secundários no modo claro (antes: #64748B) */
   --indigo: #4F46E5;
   --green: #10B981;
 }
