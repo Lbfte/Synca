@@ -118,13 +118,6 @@ export default function HabitsPage() {
                   {habit.streak_count} dias
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Link 
-                    href={`/habits/board/?id=${habit.id}`}
-                    className="p-1.5 text-muted hover:text-indigo hover:bg-indigo/10 rounded-md transition-all"
-                    title="Quadro de Referência Visual"
-                  >
-                    <Palette className="w-3.5 h-3.5" />
-                  </Link>
                   <button 
                     onClick={() => { setEditingHabit(habit); setIsModalOpen(true); }}
                     className="p-1.5 text-muted hover:text-indigo hover:bg-indigo/10 rounded-md transition-all"
@@ -147,6 +140,13 @@ export default function HabitsPage() {
               <p className={cn("text-sm text-muted mb-4 line-clamp-2 min-h-[40px] font-medium", hideHabits && "filter blur-[3px] select-none")}>
                 {hideHabits ? "Descrição do hábito confidencial." : habit.goal_description}
               </p>
+              
+              <Link href={`/habits/board/?id=${habit.id}`} className="block mb-4">
+                <Button variant="secondary" size="sm" className="w-full text-xs font-bold py-2 uppercase tracking-wider flex items-center justify-center gap-2 rounded-xl">
+                  <Palette className="w-4 h-4" />
+                  Quadro de Estudos
+                </Button>
+              </Link>
               
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted">

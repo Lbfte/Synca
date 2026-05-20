@@ -43,8 +43,8 @@ export function Sidebar() {
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-surface h-screen sticky top-0">
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl text-indigo">
-            <div className="bg-indigo p-1.5 rounded-lg">
-              <Flame className="w-5 h-5 text-white" />
+            <div className="bg-[#7b61ff] p-1.5 rounded-lg">
+              <Flame className="w-5 h-5 text-white fill-white" />
             </div>
             <span>HabitFlow</span>
           </div>

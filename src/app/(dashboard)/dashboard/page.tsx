@@ -233,7 +233,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <Link 
                         href={`/habits/board/?id=${habit.id}`}
-                        className="opacity-0 group-hover:opacity-100 p-2 text-muted hover:text-indigo hover:bg-indigo/5 rounded-xl transition-all"
+                        className="p-2 text-muted/50 hover:text-indigo hover:bg-indigo/5 rounded-xl transition-all"
                         title="Quadro de Referência Visual"
                       >
                         <Palette className="w-4 h-4" />

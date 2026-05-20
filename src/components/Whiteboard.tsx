@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Tldraw, Editor, getSnapshot, loadSnapshot, TLAssetStore } from "tldraw"
-import "tldraw/tldraw.css"
+import { useState, useEffect, useRef, useCallback } from "react"
+import dynamic from "next/dynamic"
+import "@excalidraw/excalidraw/index.css"
 import { createClient } from "@/utils/supabase/client"
 import { useTheme } from "@/components/ThemeProvider"
 import { Button } from "@/components/ui/Button"
-import { Maximize2, Minimize2, ArrowLeft, Cloud, CloudLightning, Loader2, Save } from "lucide-react"
+import { Maximize2, Minimize2, ArrowLeft, Cloud, CloudLightning, Loader2, Save, CloudOff, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 interface WhiteboardProps {
@@ -14,8 +14,25 @@ interface WhiteboardProps {
   habitName: string
 }
 
+// Importar Excalidraw de forma dinâmica (desativando SSR)
+const Excalidraw = dynamic(
+  async () => {
+    const module = await import("@excalidraw/excalidraw")
+    return module.Excalidraw
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex flex-col items-center justify-center h-full min-h-[500px] bg-surface rounded-2xl border border-border shadow-soft gap-4">
+        <Loader2 className="w-8 h-8 text-indigo animate-spin" />
+        <p className="text-muted animate-pulse font-medium">Carregando painel do Excalidraw...</p>
+      </div>
+    ),
+  }
+)
+
 // Lógica de compressão de imagem para WebP com 70% de qualidade
-const compressToWebp = (file: File, quality: number = 0.7): Promise<Blob> => {
+const compressToWebp = (file: Blob, quality: number = 0.7): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const objectUrl = URL.createObjectURL(file)
@@ -50,154 +67,205 @@ const compressToWebp = (file: File, quality: number = 0.7): Promise<Blob> => {
   })
 }
 
+// Converte dataURL (base64) para Blob
+const dataURLtoBlob = (dataurl: string): Blob => {
+  const arr = dataurl.split(',')
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png'
+  const bstr = atob(arr[1])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n)
+  }
+  return new Blob([u8arr], { type: mime })
+}
+
 export default function Whiteboard({ habitId, habitName }: WhiteboardProps) {
   const { theme } = useTheme()
-  const [editor, setEditor] = useState<Editor | null>(null)
+  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isLocalMode, setIsLocalMode] = useState(false)
   const [loading, setLoading] = useState(true)
+  
   const supabase = createClient()
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isLoadedRef = useRef(false)
 
-  // 1. Configurar o Custom Asset Store para fazer upload para o Supabase Storage
-  const assetStore: TLAssetStore = {
-    async upload(asset, file) {
-      try {
-        setSaveStatus("saving")
-        
-        let fileToUpload: Blob = file
-        let fileExtension = file.name.split('.').pop() || 'bin'
-        let mimeType = file.type
+  // 1. Carregar o estado inicial do banco de dados (Supabase)
+  const loadInitialState = useCallback(async (api: any) => {
+    if (!api) return
+    try {
+      setLoading(true)
+      isLoadedRef.current = false
 
-        // Comprime apenas se for imagem
-        if (file.type.startsWith("image/")) {
-          fileToUpload = await compressToWebp(file, 0.7)
-          fileExtension = "webp"
-          mimeType = "image/webp"
-        }
+      const { data, error } = await supabase
+        .from("habit_boards")
+        .select("content")
+        .eq("habit_id", habitId)
+        .single()
 
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error("Usuário não autenticado")
-
-        const uniqueId = Math.random().toString(36).substring(2, 15)
-        const filePath = `users/${user.id}/habits/${habitId}/${uniqueId}.${fileExtension}`
-
-        // Upload da imagem (comprimida) para o bucket 'whiteboards'
-        const { error: uploadError } = await supabase.storage
-          .from("whiteboards")
-          .upload(filePath, fileToUpload, {
-            contentType: mimeType,
-            upsert: true,
-          })
-
-        if (uploadError) throw uploadError
-
-        // Obter URL pública
-        const { data: { publicUrl } } = supabase.storage
-          .from("whiteboards")
-          .getPublicUrl(filePath)
-
-        setSaveStatus("saved")
-        return { src: publicUrl }
-      } catch (err) {
-        console.error("Erro no upload do asset:", err)
-        setSaveStatus("error")
-        throw err
-      }
-    },
-    resolve(asset) {
-      return asset.props.src
-    },
-  }
-
-  // 2. Carregar o estado inicial do banco de dados (Supabase)
-  useEffect(() => {
-    if (!editor) return
-
-    const loadInitialState = async () => {
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from("habit_boards")
-          .select("content")
-          .eq("habit_id", habitId)
-          .single()
-
-        if (error && error.code !== "PGRST116") {
-          // PGRST116 significa que o registro não foi encontrado, o que é esperado no primeiro carregamento
+      if (error) {
+        if (error.code === "PGRST205") {
+          setIsLocalMode(true)
+          console.warn("Tabela 'habit_boards' não encontrada no banco. Ativando Modo Local (IndexedDB).")
+        } else if (error.code !== "PGRST116") {
           throw error
         }
-
-        if (data?.content) {
-          const doc = typeof data.content === "string" ? JSON.parse(data.content) : data.content
-          loadSnapshot(editor.store, { document: doc })
-        }
-        setSaveStatus("saved")
-      } catch (err) {
-        console.error("Erro ao carregar estado do quadro:", err)
-        setSaveStatus("error")
-      } finally {
-        setLoading(false)
       }
-    }
 
-    loadInitialState()
-  }, [editor, habitId])
-
-  // 3. Ouvinte para salvar o estado do quadro automaticamente (Debounce)
-  useEffect(() => {
-    if (!editor || loading) return
-
-    const unsubscribe = editor.store.listen(
-      (entry) => {
-        // Limpar timer anterior
-        if (autosaveTimerRef.current) {
-          clearTimeout(autosaveTimerRef.current)
-        }
-
-        setSaveStatus("saving")
-
-        // Debounce de 2 segundos para evitar excesso de requisições
-        autosaveTimerRef.current = setTimeout(async () => {
-          try {
-            const snapshot = getSnapshot(editor.store)
-            const doc = snapshot.document
-
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
-
-            const { error } = await supabase
-              .from("habit_boards")
-              .upsert(
-                {
-                  habit_id: habitId,
-                  user_id: user.id,
-                  content: doc,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "habit_id" }
-              )
-
-            if (error) throw error
-            setSaveStatus("saved")
-          } catch (err) {
-            console.error("Erro no salvamento automático:", err)
-            setSaveStatus("error")
+      if (data?.content) {
+        try {
+          const boardState = typeof data.content === "string" ? JSON.parse(data.content) : data.content
+          
+          if (boardState.elements) {
+            api.updateScene({
+              elements: boardState.elements,
+              appState: {
+                ...boardState.appState,
+                theme: theme, // Sincroniza com o tema atual
+              },
+            })
           }
-        }, 2000)
-      },
-      { scope: "document" }
-    )
-
-    return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current)
+          if (boardState.files) {
+            api.addFiles(Object.values(boardState.files))
+          }
+        } catch (snapshotErr) {
+          console.error("Erro ao carregar dados do Excalidraw:", snapshotErr)
+        }
       }
-      unsubscribe()
-    }
-  }, [editor, habitId, loading])
 
-  // 4. Tratamento do modo tela cheia nativo do navegador (opcional/complementar)
+      setSaveStatus("idle")
+      setHasUnsavedChanges(false)
+    } catch (err) {
+      console.error("Erro ao carregar estado do quadro:", err)
+      setSaveStatus("error")
+    } finally {
+      setLoading(false)
+      setTimeout(() => {
+        isLoadedRef.current = true
+      }, 500)
+    }
+  }, [habitId, supabase, theme])
+
+  // Inicializa quando o ExcalidrawAPI estiver pronto
+  useEffect(() => {
+    if (excalidrawAPI) {
+      loadInitialState(excalidrawAPI)
+    }
+  }, [excalidrawAPI, loadInitialState])
+
+  // 2. Ouvinte para marcar alterações locais pendentes
+  const handlePointerUpdate = () => {
+    if (!isLoadedRef.current) return
+    setHasUnsavedChanges(true)
+  }
+
+  // 3. Lógica de compressão e upload de arquivos em lote e salvamento na nuvem
+  const saveToCloud = async () => {
+    if (!excalidrawAPI) return
+    try {
+      setSaveStatus("saving")
+      
+      const elements = excalidrawAPI.getSceneElements()
+      const appState = excalidrawAPI.getAppState()
+      const files = excalidrawAPI.getFiles()
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Usuário não autenticado")
+
+      // Filtrar arquivos base64 para compactar e enviar ao Storage
+      const processedFiles = { ...files }
+      let hasNewUploads = false
+
+      for (const fileId in processedFiles) {
+        const file = processedFiles[fileId]
+        
+        // Verifica se a URL do arquivo é local (base64)
+        if (file.dataURL && file.dataURL.startsWith("data:")) {
+          hasNewUploads = true
+          
+          // 1. Converter base64 para Blob
+          const originalBlob = dataURLtoBlob(file.dataURL)
+          
+          // 2. Comprimir para WebP (70% de qualidade)
+          const compressedBlob = await compressToWebp(originalBlob, 0.7)
+          
+          // 3. Gerar caminho exclusivo
+          const uniqueId = Math.random().toString(36).substring(2, 15)
+          const filePath = `users/${user.id}/habits/${habitId}/${uniqueId}.webp`
+          
+          // 4. Upload para o Supabase Storage bucket 'whiteboards'
+          const { error: uploadError } = await supabase.storage
+            .from("whiteboards")
+            .upload(filePath, compressedBlob, {
+              contentType: "image/webp",
+              upsert: true,
+            })
+
+          if (uploadError) throw uploadError
+
+          // 5. Obter URL pública
+          const { data: { publicUrl } } = supabase.storage
+            .from("whiteboards")
+            .getPublicUrl(filePath)
+
+          // 6. Atualizar a URL no objeto de arquivos
+          processedFiles[fileId] = {
+            ...file,
+            dataURL: publicUrl,
+          }
+        }
+      }
+
+      // Se houver uploads de imagens, atualizamos o Excalidraw local
+      if (hasNewUploads) {
+        excalidrawAPI.addFiles(Object.values(processedFiles))
+      }
+
+      // Salva a cena completa com as URLs da nuvem
+      const { error } = await supabase
+        .from("habit_boards")
+        .upsert(
+          {
+            habit_id: habitId,
+            user_id: user.id,
+            content: {
+              elements,
+              appState: {
+                theme: appState.theme,
+                viewBackgroundColor: appState.viewBackgroundColor,
+                gridSize: appState.gridSize,
+              },
+              files: processedFiles,
+            },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "habit_id" }
+        )
+
+      if (error) {
+        if (error.code === "PGRST205") {
+          setIsLocalMode(true)
+          setHasUnsavedChanges(false)
+          setSaveStatus("idle")
+          return
+        }
+        throw error
+      }
+
+      setHasUnsavedChanges(false)
+      setSaveStatus("saved")
+      
+      setTimeout(() => {
+        setSaveStatus("idle")
+      }, 2000)
+    } catch (err) {
+      console.error("Erro ao salvar no Supabase:", err)
+      setSaveStatus("error")
+    }
+  }
+
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen)
   }
@@ -225,39 +293,54 @@ export default function Whiteboard({ habitId, habitName }: WhiteboardProps) {
               Quadro Visual: <span className="text-indigo">{habitName}</span>
             </h2>
             <p className="text-xs text-muted font-medium">
-              Caderno infinito para imagens, estudos e marcações
+              Painel open-source do Excalidraw para imagens, marcações e estudos
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Indicador de Salvamento */}
+          {/* Indicador de Status Geral */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/5 text-xs font-semibold text-muted">
-            {saveStatus === "saving" && (
+            {isLocalMode ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 text-indigo animate-spin" />
-                <span>Salvando...</span>
+                <CloudOff className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                <span className="text-amber-600 dark:text-amber-500 font-bold">Modo Local (Offline)</span>
               </>
-            )}
-            {saveStatus === "saved" && (
+            ) : hasUnsavedChanges ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 text-orange animate-bounce" />
+                <span className="text-orange">Alterações não sincronizadas</span>
+              </>
+            ) : (
               <>
                 <Cloud className="w-3.5 h-3.5 text-green" />
-                <span className="text-green/80">Salvo no Supabase</span>
-              </>
-            )}
-            {saveStatus === "error" && (
-              <>
-                <CloudLightning className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-                <span className="text-red-500">Erro ao salvar</span>
-              </>
-            )}
-            {saveStatus === "idle" && (
-              <>
-                <Save className="w-3.5 h-3.5" />
-                <span>Sem alterações</span>
+                <span className="text-green/80">Sincronizado na Nuvem</span>
               </>
             )}
           </div>
+
+          {/* Botão Salvar na Nuvem (Apenas se não for modo local) */}
+          {!isLocalMode && (
+            <Button
+              variant={hasUnsavedChanges ? "primary" : "secondary"}
+              size="sm"
+              onClick={saveToCloud}
+              disabled={saveStatus === "saving" || !excalidrawAPI}
+              className="h-9 px-3 rounded-xl flex items-center gap-2 font-bold transition-all uppercase tracking-wider text-[10px]"
+            >
+              {saveStatus === "saving" ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Salvar na Nuvem</span>
+                </>
+              )}
+            </Button>
+          )}
 
           {/* Botão de Tela Cheia */}
           <Button
@@ -281,21 +364,20 @@ export default function Whiteboard({ habitId, habitName }: WhiteboardProps) {
         </div>
       </header>
 
-      {/* Editor Tldraw */}
-      <div className="flex-1 relative bg-background/50">
+      {/* Editor Excalidraw */}
+      <div className="flex-1 relative bg-background/50 h-full min-h-[500px]">
         {loading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-indigo animate-spin" />
             <p className="text-sm font-semibold text-muted animate-pulse">
-              Carregando seu quadro infinito...
+              Carregando seu painel Excalidraw...
             </p>
           </div>
         )}
-        <Tldraw
-          colorScheme={theme}
-          onMount={(editorInstance) => setEditor(editorInstance)}
-          assets={assetStore}
-          persistenceKey={`habit-board-${habitId}`}
+        <Excalidraw
+          theme={theme}
+          excalidrawAPI={(api) => setExcalidrawAPI(api)}
+          onChange={handlePointerUpdate}
         />
       </div>
     </div>

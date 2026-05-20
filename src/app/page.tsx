@@ -7,8 +7,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen">
       <header className="px-6 py-4 flex items-center justify-between border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-xl text-indigo">
-          <div className="bg-indigo p-1.5 rounded-lg">
-            <Flame className="w-5 h-5 text-white" />
+          <div className="bg-[#7b61ff] p-1.5 rounded-lg">
+            <Flame className="w-5 h-5 text-white fill-white" />
           </div>
           <span>HabitFlow</span>
         </div>
