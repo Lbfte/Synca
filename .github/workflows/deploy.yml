@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: "https://lhzheyeomqmxivhfqlim.supabase.co"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_2MsPgV9RBpYu5vYTLccv0g_phsrOgPh"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoemhleWVvbXFteGl2aGZxbGltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM2OTQsImV4cCI6MjA5MzY2OTY5NH0.Uw_wtETU5LQ90gOL5DoxbH5eFD6PRofzSt5I3ruA1B4"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
