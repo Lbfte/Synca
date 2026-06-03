@@ -248,12 +248,13 @@ function EditorContent() {
           </div>
 
           {mode === 'edit' ? (
-            <textarea 
-              className="w-full min-h-[500px] bg-transparent border-none focus:ring-0 resize-none text-lg leading-relaxed placeholder:text-muted/50 outline-none text-foreground font-medium"
-              placeholder="Comece a escrever sua jornada... (Suporta Markdown)"
-              value={report.content || ""}
-              onChange={(e) => setReport({ ...report, content: e.target.value })}
-            />
+            <textarea
+  className="w-full min-h-[500px] bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/50 outline-none text-foreground font-medium"
+  placeholder="Comece a escrever sua jornada... (Suporta Markdown)"
+  value={report.content || ""}
+  onChange={(e) => setReport({ ...report, content: e.target.value })}
+  style={{ fontFamily: 'var(--font-fira-code), monospace', color: 'var(--foreground) !important', opacity: 0.95, fontSize: '0.875rem' }}
+/>
           ) : (
             <Card className="p-8 border-none shadow-xl bg-surface min-h-[500px] ring-1 ring-border">
               <article 

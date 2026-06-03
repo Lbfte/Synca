@@ -47,10 +47,10 @@ body {
   
   /* Corrige o fundo e a fonte de selects e inputs nativos/customizados */
   /* Labels e o input de título (com classe .text-4xl) NÃO são afetados */
-  select, input:not(.text-4xl), textarea {
+  select, input:not(.text-4xl) {
     background-color: var(--surface);
     color: color-mix(in srgb, var(--foreground) 95%, transparent) !important;
-    font-family: var(--font-fira-code), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    /* font-family removed to preserve default UI fonts */
     font-size: 0.875rem !important; /* ligeiramente menor que o padrão (1rem) */
     font-weight: 400;
   }
