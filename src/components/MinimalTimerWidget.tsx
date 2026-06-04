@@ -9,44 +9,100 @@ import Link from "next/link"
 
 type Mode = "pomodoro" | "stopwatch"
 
+export const TIMER_STORAGE_KEY = "habitflow_active_timer"
+
 export function MinimalTimerWidget() {
   const [mode, setMode] = useState<Mode>("pomodoro")
   const [pomodoroMinutes, setPomodoroMinutes] = useState(25)
   const [timeLeft, setTimeLeft] = useState(25 * 60)
   const [stopwatchTime, setStopwatchTime] = useState(0)
   const [isActive, setIsActive] = useState(false)
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState("25")
-  
+
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  // Wall-clock refs: evitam drift ao usar Date.now() em vez de contar ticks
+  const endTimeRef = useRef<number | null>(null)   // timestamp ms em que o pomodoro termina
+  const startTimeRef = useRef<number | null>(null) // timestamp ms em que o cronômetro começou
+  const isRestoredRef = useRef(false)
 
-  const handleModeChange = (newMode: Mode) => {
-    setMode(newMode)
-    setIsActive(false)
-    setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
-  }
-
+  // ─── Restaurar estado do localStorage ao montar ───────────────────────────
   useEffect(() => {
-    if (isActive) {
-      timerRef.current = setInterval(() => {
-        if (mode === "pomodoro") {
-          setTimeLeft((prevTime) => {
-            if (prevTime <= 1) {
-              setIsActive(false)
-              if (timerRef.current) clearInterval(timerRef.current)
-              return 0
-            }
-            return prevTime - 1
-          })
-        } else {
-          setStopwatchTime((prevTime) => prevTime + 1)
+    if (isRestoredRef.current) return
+    isRestoredRef.current = true
+
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY)
+    if (!raw) return
+    try {
+      const s = JSON.parse(raw)
+      const m: Mode = s.mode === "stopwatch" ? "stopwatch" : "pomodoro"
+      const mins: number = s.pomodoroSettings?.focus ?? s.pomodoroMinutes ?? 25
+      setMode(m)
+      setPomodoroMinutes(mins)
+
+      if (s.isActive) {
+        if (m === "pomodoro" && s.endTime) {
+          const remaining = Math.ceil((s.endTime - Date.now()) / 1000)
+          if (remaining > 0) {
+            endTimeRef.current = s.endTime
+            setTimeLeft(remaining)
+            setIsActive(true)
+          } else {
+            setTimeLeft(0)
+          }
+        } else if (m === "stopwatch" && s.startTime) {
+          startTimeRef.current = s.startTime
+          setStopwatchTime(Math.floor((Date.now() - s.startTime) / 1000))
+          setIsActive(true)
         }
-      }, 1000)
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current)
+      } else {
+        if (m === "pomodoro") setTimeLeft(s.timeLeft ?? mins * 60)
+        else setStopwatchTime(s.stopwatchTime ?? 0)
+      }
+    } catch {
+      // JSON corrompido — ignora
     }
+  }, [])
+
+  // ─── Sincronizar estado → localStorage ───────────────────────────────────
+  useEffect(() => {
+    const state = {
+      mode,
+      pomodoroMinutes,
+      pomodoroSettings: { focus: pomodoroMinutes, shortBreak: 5, longBreak: 15 },
+      isActive,
+      timeLeft,
+      stopwatchTime,
+      endTime: isActive && mode === "pomodoro" ? endTimeRef.current : null,
+      startTime: isActive && mode === "stopwatch" ? startTimeRef.current : null,
+    }
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state))
+  }, [mode, pomodoroMinutes, isActive, timeLeft, stopwatchTime])
+
+  // ─── Loop do timer com wall-clock (sem drift) ─────────────────────────────
+  useEffect(() => {
+    if (!isActive) {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+
+    timerRef.current = setInterval(() => {
+      if (mode === "pomodoro") {
+        if (!endTimeRef.current) return
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000)
+        if (remaining <= 0) {
+          setTimeLeft(0)
+          endTimeRef.current = null
+          setIsActive(false)
+        } else {
+          setTimeLeft(remaining)
+        }
+      } else {
+        if (!startTimeRef.current) return
+        setStopwatchTime(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      }
+    }, 500) // 500ms para maior precisão na exibição
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -57,41 +113,61 @@ export function MinimalTimerWidget() {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
     const s = seconds % 60
-    
     if (h > 0) {
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
     }
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+  }
+
+  const handleModeChange = (newMode: Mode) => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
+    setMode(newMode)
+    setIsActive(false)
+    setIsEditing(false)
+    if (newMode === "pomodoro") setTimeLeft(pomodoroMinutes * 60)
+    else setStopwatchTime(0)
   }
 
   const toggleTimer = () => {
-    if (mode === "pomodoro" && timeLeft === 0) {
-      setTimeLeft(pomodoroMinutes * 60)
+    if (isActive) {
+      // Pausar: zera refs de wall-clock
+      endTimeRef.current = null
+      startTimeRef.current = null
+      setIsActive(false)
+    } else {
+      // Iniciar / retomar
+      if (mode === "pomodoro") {
+        const tl = timeLeft === 0 ? pomodoroMinutes * 60 : timeLeft
+        if (timeLeft === 0) setTimeLeft(tl)
+        endTimeRef.current = Date.now() + tl * 1000
+      } else {
+        startTimeRef.current = Date.now() - stopwatchTime * 1000
+      }
+      setIsEditing(false)
+      setIsActive(true)
     }
-    setIsEditing(false)
-    setIsActive(!isActive)
   }
 
   const resetTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (mode === "pomodoro") {
-      setTimeLeft(pomodoroMinutes * 60)
-    } else {
-      setStopwatchTime(0)
-    }
+    if (mode === "pomodoro") setTimeLeft(pomodoroMinutes * 60)
+    else setStopwatchTime(0)
   }
 
   const skipTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (mode === "pomodoro") {
-      setTimeLeft(0)
-    } else {
-      setStopwatchTime(0)
-    }
+    if (mode === "pomodoro") setTimeLeft(0)
+    else setStopwatchTime(0)
   }
 
   const saveCustomTime = () => {
@@ -106,7 +182,7 @@ export function MinimalTimerWidget() {
   // Círculo de progresso
   const totalTime = mode === "pomodoro" ? pomodoroMinutes * 60 : null
   const progress = totalTime ? ((totalTime - timeLeft) / totalTime) * 100 : 0
-  const circumference = 2 * Math.PI * 76 // r = 76
+  const circumference = 2 * Math.PI * 76
   const strokeDashoffset = circumference - (progress / 100) * circumference
 
   return (
@@ -120,14 +196,14 @@ export function MinimalTimerWidget() {
           )}
           Foco Rápido
         </CardTitle>
-        
+
         <Link href="/focus" title="Abrir Modo Foco Completo">
           <Button variant="ghost" className="w-8 h-8 p-0 rounded-full hover:bg-indigo/10 text-muted hover:text-indigo transition-colors">
             <Settings2 className="w-4 h-4" />
           </Button>
         </Link>
       </CardHeader>
-      
+
       <CardContent className="space-y-6 relative z-10 flex flex-col justify-center">
         {/* Seletor de Modo */}
         <div className="flex bg-slate-100 dark:bg-background p-1 rounded-2xl border border-border">
@@ -153,7 +229,6 @@ export function MinimalTimerWidget() {
 
         {/* Display do Círculo */}
         <div className="relative flex items-center justify-center w-44 h-44 mx-auto">
-          {/* Círculo do Cronômetro */}
           <svg className="absolute inset-0 w-full h-full transform -rotate-90">
             <circle
               cx="50%"
@@ -175,7 +250,7 @@ export function MinimalTimerWidget() {
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                className="text-[var(--indigo)] transition-all duration-1000 ease-linear"
+                className="text-[var(--indigo)] transition-all duration-500 ease-linear"
               />
             )}
           </svg>
@@ -194,15 +269,15 @@ export function MinimalTimerWidget() {
                   autoFocus
                   onBlur={saveCustomTime}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveCustomTime()
-                    if (e.key === 'Escape') setIsEditing(false)
+                    if (e.key === "Enter") saveCustomTime()
+                    if (e.key === "Escape") setIsEditing(false)
                   }}
                 />
                 <span className="text-[9px] font-bold text-muted uppercase tracking-wider bg-muted/5 px-1 py-0.5 rounded">min</span>
               </div>
             ) : (
               <div className="relative group/time flex items-center justify-center w-full px-4">
-                <span 
+                <span
                   onClick={() => {
                     if (!isActive && mode === "pomodoro") {
                       setEditValue(String(Math.floor(timeLeft / 60)))
@@ -219,7 +294,7 @@ export function MinimalTimerWidget() {
                   {mode === "pomodoro" ? formatTime(timeLeft) : formatTime(stopwatchTime)}
                 </span>
                 {!isActive && mode === "pomodoro" && (
-                  <button 
+                  <button
                     onClick={() => {
                       setEditValue(String(Math.floor(timeLeft / 60)))
                       setIsEditing(true)
@@ -242,7 +317,6 @@ export function MinimalTimerWidget() {
 
         {/* Controles de Ação */}
         <div className="flex items-center justify-center gap-5 mt-2">
-          {/* Botão de Reset */}
           <Button
             variant="outline"
             onClick={resetTimer}
@@ -252,13 +326,12 @@ export function MinimalTimerWidget() {
             <RotateCcw className="w-4 h-4 text-muted-foreground" />
           </Button>
 
-          {/* Botão Play/Pause Grande */}
           <button
             onClick={toggleTimer}
             className={cn(
               "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 shrink-0 border-2",
-              isActive 
-                ? "bg-transparent border-[var(--indigo)] text-[var(--indigo)] hover:bg-[var(--indigo)]/5" 
+              isActive
+                ? "bg-transparent border-[var(--indigo)] text-[var(--indigo)] hover:bg-[var(--indigo)]/5"
                 : "bg-[var(--indigo)] border-transparent text-white shadow-[var(--indigo)]/20 hover:opacity-90"
             )}
           >
@@ -269,7 +342,6 @@ export function MinimalTimerWidget() {
             )}
           </button>
 
-          {/* Botão de Skip */}
           <Button
             variant="outline"
             onClick={skipTimer}

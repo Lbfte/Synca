@@ -12,6 +12,8 @@ import { format } from "date-fns"
 type Mode = "pomodoro" | "stopwatch"
 type PomodoroState = "focus" | "shortBreak" | "longBreak"
 
+const TIMER_STORAGE_KEY = "habitflow_active_timer"
+
 export default function FocusPage() {
   const [mode, setMode] = useState<Mode>("pomodoro")
   const [pomodoroState, setPomodoroState] = useState<PomodoroState>("focus")
@@ -25,6 +27,10 @@ export default function FocusPage() {
   const [editValue, setEditValue] = useState("25")
   
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  // Wall-clock refs: evitam drift ao usar Date.now() em vez de contar ticks
+  const endTimeRef = useRef<number | null>(null)   // timestamp ms em que o pomodoro termina
+  const startTimeRef = useRef<number | null>(null) // timestamp ms em que o cronômetro começou
+  const isRestoredRef = useRef(false)
 
   // Custom states
   const [tasks, setTasks] = useState<DailyTask[]>([])
@@ -97,6 +103,48 @@ export default function FocusPage() {
 
   const supabase = createClient()
 
+  // ─── Restaurar estado do timer do localStorage ao montar ──────────────────
+  useEffect(() => {
+    if (isRestoredRef.current) return
+    isRestoredRef.current = true
+
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY)
+    if (raw) {
+      try {
+        const s = JSON.parse(raw)
+        const m: Mode = s.mode === "stopwatch" ? "stopwatch" : "pomodoro"
+        const ps: PomodoroState = (["focus", "shortBreak", "longBreak"].includes(s.pomodoroState) ? s.pomodoroState : "focus") as PomodoroState
+        const settings = s.pomodoroSettings ?? { focus: 25, shortBreak: 5, longBreak: 15 }
+
+        setMode(m)
+        setPomodoroState(ps)
+        setPomodoroSettings(settings)
+
+        if (s.isActive) {
+          if (m === "pomodoro" && s.endTime) {
+            const remaining = Math.ceil((s.endTime - Date.now()) / 1000)
+            if (remaining > 0) {
+              endTimeRef.current = s.endTime
+              setTimeLeft(remaining)
+              setIsActive(true)
+            } else {
+              setTimeLeft(0)
+            }
+          } else if (m === "stopwatch" && s.startTime) {
+            startTimeRef.current = s.startTime
+            setStopwatchTime(Math.floor((Date.now() - s.startTime) / 1000))
+            setIsActive(true)
+          }
+        } else {
+          if (m === "pomodoro") setTimeLeft(s.timeLeft ?? settings[ps] * 60)
+          else setStopwatchTime(s.stopwatchTime ?? 0)
+        }
+      } catch {
+        // JSON corrompido — ignora
+      }
+    }
+  }, [])
+
   // Fetch tasks and statistics
   useEffect(() => {
     fetchTasks()
@@ -130,6 +178,22 @@ export default function FocusPage() {
       }
     }
   }, [])
+
+  // ─── Sincronizar estado do timer → localStorage ────────────────────────────
+  useEffect(() => {
+    if (!isRestoredRef.current) return
+    const state = {
+      mode,
+      pomodoroState,
+      pomodoroSettings,
+      isActive,
+      timeLeft,
+      stopwatchTime,
+      endTime: isActive && mode === "pomodoro" ? endTimeRef.current : null,
+      startTime: isActive && mode === "stopwatch" ? startTimeRef.current : null,
+    }
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state))
+  }, [mode, pomodoroState, pomodoroSettings, isActive, timeLeft, stopwatchTime])
 
   // Web Audio Rain Sound Synthesis (Brown Noise + Lowpass Filter)
   const startRainSound = () => {
@@ -231,40 +295,49 @@ export default function FocusPage() {
 
   // Handle mode switch
   const handleModeChange = (newMode: Mode) => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setMode(newMode)
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
   }
 
   // Handle Pomodoro state switch (Cores roxo/índigo e verde puras)
   const handlePomodoroStateChange = (newState: PomodoroState) => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setPomodoroState(newState)
     setTimeLeft(pomodoroSettings[newState] * 60)
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
   }
 
-  // Effect to handle the timer interval
+  // ─── Loop do timer com wall-clock (sem drift) ─────────────────────────────
   useEffect(() => {
-    if (isActive) {
-      timerRef.current = setInterval(() => {
-        if (mode === "pomodoro") {
-          setTimeLeft((prevTime) => {
-            if (prevTime <= 1) {
-              handleTimerCompletion()
-              return 0
-            }
-            return prevTime - 1
-          })
-        } else {
-          setStopwatchTime((prevTime) => prevTime + 1)
-        }
-      }, 1000)
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current)
+    if (!isActive) {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
     }
+
+    timerRef.current = setInterval(() => {
+      if (mode === "pomodoro") {
+        if (!endTimeRef.current) return
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000)
+        if (remaining <= 0) {
+          setTimeLeft(0)
+          endTimeRef.current = null
+          setIsActive(false)
+          handleTimerCompletion()
+        } else {
+          setTimeLeft(remaining)
+        }
+      } else {
+        if (!startTimeRef.current) return
+        setStopwatchTime(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      }
+    }, 500) // 500ms para maior precisão na exibição
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -338,17 +411,31 @@ export default function FocusPage() {
   }
 
   const toggleTimer = () => {
-    if (mode === "pomodoro" && timeLeft === 0) {
-      setTimeLeft(pomodoroSettings[pomodoroState] * 60)
+    if (isActive) {
+      // Pausar: zera refs de wall-clock
+      endTimeRef.current = null
+      startTimeRef.current = null
+      setIsActive(false)
+    } else {
+      // Iniciar / retomar
+      if (mode === "pomodoro") {
+        const tl = timeLeft === 0 ? pomodoroSettings[pomodoroState] * 60 : timeLeft
+        if (timeLeft === 0) setTimeLeft(tl)
+        endTimeRef.current = Date.now() + tl * 1000
+      } else {
+        startTimeRef.current = Date.now() - stopwatchTime * 1000
+      }
+      setIsEditing(false)
+      setIsActive(true)
     }
-    setIsEditing(false)
-    setIsActive(!isActive)
   }
 
   const resetTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
     
     if (mode === "pomodoro") {
       setTimeLeft(pomodoroSettings[pomodoroState] * 60)
@@ -382,9 +469,11 @@ export default function FocusPage() {
   }
 
   const skipTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    endTimeRef.current = null
+    startTimeRef.current = null
     setIsActive(false)
     setIsEditing(false)
-    if (timerRef.current) clearInterval(timerRef.current)
     
     if (mode === "pomodoro") {
       if (pomodoroState === "focus") {
