@@ -37,11 +37,11 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md border-none shadow-xl ring-1 ring-gray-100 text-center">
+      <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-md border border-border shadow-xl shadow-indigo/5 bg-surface text-center">
           <CardHeader>
             <CardTitle className="text-2xl font-bold tracking-tight text-green">E-mail enviado!</CardTitle>
-            <CardDescription className="pt-2">
+            <CardDescription className="pt-2 text-muted">
               Verifique sua caixa de entrada para obter o link de recuperação de senha.
             </CardDescription>
           </CardHeader>
@@ -56,21 +56,21 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md border-none shadow-xl ring-1 ring-gray-100">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md border border-border shadow-xl shadow-indigo/5 bg-surface">
         <CardHeader className="space-y-1 flex flex-col items-center text-center">
           <div className="bg-indigo/10 p-3 rounded-2xl mb-2">
             <KeyRound className="w-8 h-8 text-indigo" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Recuperar senha</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">Recuperar senha</CardTitle>
+          <CardDescription className="text-muted">
             Digite seu e-mail para receber um link de recuperação
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleReset} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none" htmlFor="email">
+              <label className="text-sm font-semibold text-foreground/80 leading-none" htmlFor="email">
                 E-mail
               </label>
               <Input
@@ -80,10 +80,11 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-background/50 border-border focus:border-indigo"
               />
             </div>
             {error && (
-              <div className="text-sm text-red-500 font-medium">
+              <div className="text-sm text-red-500 font-medium bg-red-500/10 px-3 py-2 rounded-xl border border-red-500/20">
                 {error}
               </div>
             )}

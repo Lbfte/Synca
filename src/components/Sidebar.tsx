@@ -46,8 +46,13 @@ export function Sidebar({ isMinimized, onToggleMinimize }: SidebarProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false)
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = "/login"
+    try {
+      await supabase.auth.signOut()
+      const basePath = window.location.hostname.includes('github.io') ? '/Synca' : ''
+      window.location.href = `${basePath}/login/`
+    } catch (error) {
+      console.error("Erro ao sair:", error)
+    }
   }
 
   // Links principais mostrados diretamente na barra inferior no mobile
@@ -76,12 +81,12 @@ export function Sidebar({ isMinimized, onToggleMinimize }: SidebarProps) {
       >
         <div className={cn("p-6 flex items-center justify-between", isMinimized && "flex-col gap-4 px-2")}>
           <div className={cn("flex items-center gap-2 font-bold text-xl text-indigo", isMinimized && "justify-center")}>
-            <div className="p-1.5 rounded-lg shrink-0">
+            <div className="bg-indigo/10 p-1.5 rounded-xl shrink-0">
               <Logo className="w-8 h-8 text-indigo" />
             </div>
             {!isMinimized && <span className="animate-in fade-in duration-200">Synca</span>}
           </div>
-          
+
           <button
             onClick={onToggleMinimize}
             className={cn(
